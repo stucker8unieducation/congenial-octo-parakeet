@@ -1,0 +1,46 @@
+Add-Type -AssemblyName System.Windows.Forms
+
+# Prompt the user to select the source directory
+$folderBrowserSource = New-Object System.Windows.Forms.FolderBrowserDialog
+$folderBrowserSource.Description = "Select the source directory"
+
+if ($folderBrowserSource.ShowDialog() -eq [System.Windows.Forms.DialogResult]::OK) {
+    $sourceDir = $folderBrowserSource.SelectedPath
+
+    # Prompt the user to select the destination directory
+    $folderBrowserDestination = New-Object System.Windows.Forms.FolderBrowserDialog
+    $folderBrowserDestination.Description = "Select the destination directory"
+
+    if ($folderBrowserDestination.ShowDialog() -eq [System.Windows.Forms.DialogResult]::OK) {
+        $destinationDir = $folderBrowserDestination.SelectedPath
+
+        # Prompt the user to enter the target date for moving files (in yyyyMMdd format)
+        $targetDate = Read-Host "Enter the target date (yyyyMMdd)"
+
+        # Convert the entered date to a DateTime object
+        $targetDateTime = [DateTime]::ParseExact($targetDate, "yyyyMMdd", $null)
+
+        # Create the destination directory if it does not exist
+        if (-not (Test-Path $destinationDir)) {
+            New-Item -ItemType Directory -Path $destinationDir
+        }
+
+        # Move files created on the specified date from the source to the destination directory
+        Get-ChildItem -Path $sourceDir -Recurse | Where-Object {
+            $_.CreationTime.Date -eq $targetDateTime.Date
+        } | ForEach-Object {
+            $destinationPath = Join-Path $destinationDir $_.FullName.Substring($sourceDir.Length + 1)
+
+            # Create the destination directory if it does not exist
+            if (-not (Test-Path $destinationPath)) {
+                New-Item -ItemType Directory -Path $destinationPath
+            }
+
+            Move-Item $_.FullName $destinationPath -Force
+        }
+    } else {
+        Write-Host "Operation canceled by the user."
+    }
+} else {
+    Write-Host "Operation canceled by the user."
+}
