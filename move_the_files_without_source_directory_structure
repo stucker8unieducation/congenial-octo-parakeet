@@ -1,0 +1,34 @@
+Add-Type -AssemblyName System.Windows.Forms
+
+# Specify the path of the source directory
+$sourceDir = "D:\stac2299\Music"
+
+# Prompt the user to select the destination directory
+$folderBrowser = New-Object System.Windows.Forms.FolderBrowserDialog
+$folderBrowser.Description = "Select the destination directory"
+$folderBrowser.RootFolder = [System.Environment+SpecialFolder]::MyComputer
+
+# Display the dialog until the user clicks the OK button
+if ($folderBrowser.ShowDialog() -eq [System.Windows.Forms.DialogResult]::OK) {
+    $destinationDir = $folderBrowser.SelectedPath
+
+    # Prompt the user to enter the target date
+    $targetDate = Read-Host "Enter the target date (yyyyMMdd)"
+
+    # Convert the entered date to a DateTime object
+    $targetDateTime = [DateTime]::ParseExact($targetDate, "yyyyMMdd", $null)
+
+    # Create the destination directory if it does not exist
+    if (-not (Test-Path $destinationDir)) {
+        New-Item -ItemType Directory -Path $destinationDir
+    }
+
+    # Move files created on the specified date from the source to the destination directory
+    Get-ChildItem -Path $sourceDir -Recurse | Where-Object {
+        $_.CreationTime.Date -eq $targetDateTime.Date
+    } | ForEach-Object {
+        Move-Item $_.FullName $destinationDir -Force
+    }
+} else {
+    Write-Host "Operation canceled by the user."
+}
